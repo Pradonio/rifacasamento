@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa Victor e Luana</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="script.js" defer></script>
+</head>
+<body>
+    <header>
+        <h1>Victor e Luana 09/08/2025</h1>
+        <div class="dropdown">
+            <button class="dropbtn">...</button>
+            <div class="dropdown-content">
+                <button onclick="mostrarPainelControle()">Painel de Controle</button>
+                <button onclick="exportarDados()">Exportar Dados</button>
+                <input type="file" id="importarInput" onchange="importarDados(event.target.files[0])" />
+            </div>
+        </div>
+    </header>
+    
+    <main>
+        <div id="rifa-numeros">
+            <!-- Números da rifa serão gerados aqui -->
+        </div>
+        
+        <div id="lista-reservas">
+            <h2>Reservas</h2>
+            <ul id="reservas-lista"></ul>
+        </div>
+
+        <div id="painel-controle" style="display: none;">
+            <h2>Painel de Controle</h2>
+            <input type="text" id="numero-aprovar" placeholder="Número para Aprovar/Reprovar" />
+            <button onclick="aprovarReserva()">Aprovar</button>
+            <button onclick="reprovarReserva()">Reprovar</button>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Victor e Luana</p>
+    </footer>
+</body>
+</html>
