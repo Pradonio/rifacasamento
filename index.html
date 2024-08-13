@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa Victor e Luana</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 24px;
+            color: #4CAF50;
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropbtn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 5px;
+        }
+        .dropdown-content button {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            border: none;
+            width: 100%;
+            text-align: left;
+            background: none;
+            cursor: pointer;
+        }
+        .dropdown-content button:hover {
+            background-color: #ddd;
+        }
+        #rifa-numeros {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .numero {
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            background-color: white;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .reservado {
+            background-color: orange;
+        }
+        .pago {
+            background-color: red;
+        }
+        #reservas-lista {
+            list-style-type: none;
+            padding: 0;
+        }
+        #painel-controle {
+            display: none;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+        /* Responsividade */
+        @media (max-width: 600px) {
+            header h1 {
+                font-size: 20px;
+            }
+            .numero {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+        }
+    </style>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDBgCqbqzr6Bkkv1Z9CMBivVonZDa3e-fY",
+            authDomain: "rifa-victor-e-luana.firebaseapp.com",
+            databaseURL: "https://rifa-victor-e-luana-default-rtdb.firebaseio.com",
+            projectId: "rifa-victor-e-luana",
+            storageBucket: "rifa-victor-e-luana.appspot.com",
+            messagingSenderId: "720917477516",
+            appId: "1:720917477516:web:e3066203c220a6de2723a9"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const reservasRef = ref(database, 'reservas/');
+
+        let reservas = {};
+
+        // Função para adicionar números da rifa
+        function adicionarNumeroRifa() {
+            const container = document.getElementById("rifa-numeros");
+            for (let i = 1; i <= 150; i++) {
+                const numeroDiv = document.createElement("div");
+                numeroDiv.className = "numero";
+                numeroDiv.textContent = i;
+                numeroDiv.onclick = () => reservarNumero(i);
+                container.appendChild(numeroDiv);
+            }
+            carregarReservas();
+        }
+
+        // Função para reservar número
+        function reservarNumero(numero) {
+            const nome = prompt("Digite seu nome para reservar o número " + numero);
+            if (!nome) {
+                alert("Nome é obrigatório para reservar.");
+                return;
+            }
+            if (!reservas[numero]) {
+                reservas[numero] = { nome: nome, status: "reservado" };
+                atualizarReservas();
+                alert("Número " + numero + " reservado por " + nome);
+            } else {
+                alert("Número já reservado!");
+            }
+        }
+
+        // Função para atualizar reservas no Firebase
+        function atualizarReservas() {
+            set(reservasRef, reservas);
+            renderizarReservas();
+        }
+
+        // Função para renderizar reservas
+        function renderizarReservas() {
+            const container = document.getElementById("rifa-numeros");
+            const numeros = container.getElementsByClassName("numero");
+            for (let i = 1; i <= 150; i++) {
+                const numeroDiv = numeros[i - 1];
+                if (reservas[i]) {
+                    numeroDiv.className = reservas[i].status === "reservado" ? "numero reservado" : "numero pago";
+                    numeroDiv.textContent = `${i} (${reservas[i].nome})`;
+                } else {
+                    numeroDiv.className = "numero";
+                    numeroDiv.textContent = i;
+                }
+            }
+            renderizarListaReservas();
+        }
+
+        // Função para renderizar a lista de reservas
+        function renderizarListaReservas() {
+            const lista = document.getElementById("reservas-lista");
+            lista.innerHTML = "";
+            for (const [numero, reserva] of Object.entries(reservas)) {
+                const li = document.createElement("li");
+                li.textContent = `${reserva.nome} reservou o número ${numero} (${reserva.status})`;
+                lista.appendChild(li);
+            }
+        }
+
+        // Carregar reservas do Firebase
+        function carregarReservas() {
+            onValue(reservasRef, (snapshot) => {
+                reservas = snapshot.val() || {};
+                renderizarReservas();
+            });
+        }
+
+        // Mostrar painel de controle
+        function mostrarPainelControle() {
+            const painel = document.getElementById("painel-controle");
+            painel.style.display = painel.style.display === "none" ? "block" : "none";
+        }
+
+        // Aprovar reserva
+        function aprovarReserva() {
+            const numero = document.getElementById("numero-aprovar").value;
+            if (reservas[numero]) {
+                reservas[numero].status = "pago";
+                atualizarReservas();
+                alert("Reserva do número " + numero + " aprovada.");
+            } else {
+                alert("Número não encontrado.");
+            }
+        }
+
+        // Reprovar reserva
+        function reprovarReserva() {
+            const numero = document.getElementById("numero-aprovar").value;
+            if (reservas[numero]) {
+                delete reservas[numero];
+                atualizarReservas();
+                alert("Reserva do número " + numero + " reprovada.");
+            } else {
+                alert("Número não encontrado.");
+            }
+        }
+
+        // Exportar dados
+        function exportarDados() {
+            const blob = new Blob([JSON.stringify(reservas, null, 2)], { type: 'text/plain' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "reservas.txt";
+            link.click();
+        }
+
+        // Importar dados
+        function importarDados(file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedReservas = JSON.parse(event.target.result);
+                    reservas = { ...reservas, ...importedReservas };
+                    atualizarReservas();
+                    alert("Dados importados com sucesso.");
+                } catch (error) {
+                    alert("Erro ao importar os dados: " + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Inicializa os números da rifa
+        window.onload = adicionarNumeroRifa;
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Rifa Victor e Luana</h1>
+        <div class="dropdown">
+            <button class="dropbtn">☰</button>
+            <div class="dropdown-content">
+                <button onclick="mostrarPainelControle()">Painel de Controle</button>
+                <button onclick="exportarDados()">Exportar para TXT</button>
+                <input type="file" accept=".txt" onchange="importarDados(this.files[0])">
+            </div>
+        </div>
+    </header>
+
+    <div id="rifa-numeros"></div>
+
+    <h2>Reservas</h2>
+    <ul id="reservas-lista"></ul>
+
+    <div id="painel-controle">
+        <h3>Painel de Controle</h3>
+        <input type="number" id="numero-aprovar" placeholder="Número a aprovar/reprovar">
+        <button onclick="aprovarReserva()">Aprovar</button>
+        <button onclick="reprovarReserva()">Reprovar</button>
+    </div>
+
+    <footer>
+        <p>© 2024 Victor e Luana - Todos os direitos reservados.</p>
+    </footer>
+</body>
+</html>
