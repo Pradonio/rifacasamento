@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa Victor e Luana</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        #menu {
+            display: flex;
+            justify-content: flex-end;
+        }
+        #menu button {
+            background-color: #f1f1f1;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 16px;
+        }
+        #menu button:hover {
+            background-color: #ddd;
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
+            padding: 20px;
+        }
+        .grid button {
+            background-color: white;
+            border: 2px solid #4CAF50;
+            border-radius: 10px;
+            padding: 20px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .grid button.reserved {
+            background-color: orange;
+            border-color: orange;
+        }
+        .grid button.paid {
+            background-color: red;
+            border-color: red;
+        }
+        #reservas {
+            margin: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #4CAF50;
+            color: white;
+            position: relative;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Rifa Victor e Luana</h1>
+        <div id="menu">
+            <div class="dropdown">
+                <button>Menu</button>
+                <div class="dropdown-content">
+                    <button onclick="acessarPainel()">Acesso ao Painel de Controle</button>
+                    <button onclick="exportarReservas()">Exportar para TXT</button>
+                    <button onclick="importarReservas()">Importar de TXT</button>
+                    <button onclick="reiniciarTabela()">Reiniciar Tabela</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="grid" id="gridNumeros"></div>
+        <div id="reservas">
+            <h3>Reservas:</h3>
+            <ul id="listaReservas"></ul>
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2024 Victor e Luana. Todos os direitos reservados.
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-database.js"></script>
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDBgCqbqzr6Bkkv1Z9CMBivVonZDa3e-fY",
+            authDomain: "rifa-victor-e-luana.firebaseapp.com",
+            databaseURL: "https://rifa-victor-e-luana-default-rtdb.firebaseio.com",
+            projectId: "rifa-victor-e-luana",
+            storageBucket: "rifa-victor-e-luana.appspot.com",
+            messagingSenderId: "720917477516",
+            appId: "1:720917477516:web:e3066203c220a6de2723a9"
+        };
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const numerosReservados = {};
+        const gridNumeros = document.getElementById('gridNumeros');
+        const listaReservas = document.getElementById('listaReservas');
+
+        function criarNumeros() {
+            for (let i = 1; i <= 150; i++) {
+                const botao = document.createElement('button');
+                botao.textContent = i;
+                botao.onclick = () => reservarNumero(i);
+                gridNumeros.appendChild(botao);
+            }
+        }
+        
+
+        function reservarNumero(numero) {
+            const nome = prompt("Digite seu nome:");
+            if (nome) {
+                const status = numerosReservados[numero];
+                if (!status) {
+                    numerosReservados[numero] = { nome: nome, status: 'reservado' };
+                    atualizarBancoDeDados();
+                    atualizarListaReservas();
+                } else if (status.status === 'reservado') {
+                    if (confirm("Número já reservado. Deseja marcar como pago?")) {
+                        status.status = 'pago';
+                        atualizarBancoDeDados();
+                        atualizarListaReservas();
+                    }
+                } else {
+                    alert("Número já está pago.");
+                }
+            } else {
+                alert("Nome é obrigatório para reservar.");
+            }
+        }
+
+        function atualizarBancoDeDados() {
+            database.ref('reservas').set(numerosReservados);
+            atualizarGrid();
+        }
+
+        function atualizarGrid() {
+            gridNumeros.childNodes.forEach((botao, index) => {
+                const numero = index + 1;
+                const status = numerosReservados[numero];
+                botao.className = '';
+                if (status) {
+                    if (status.status === 'reservado') {
+                        botao.classList.add('reserved');
+                    } else if (status.status === 'pago') {
+                        botao.classList.add('paid');
+                    }
+                }
+            });
+        }
+
+        function atualizarListaReservas() {
+            listaReservas.innerHTML = '';
+            for (const numero in numerosReservados) {
+                const li = document.createElement('li');
+                li.textContent = `Número ${numero}: ${numerosReservados[numero].nome} - ${numerosReservados[numero].status}`;
+                listaReservas.appendChild(li);
+            }
+        }
+
+        function acessarPainel() {
+            const senha = prompt("Digite a senha:");
+            if (senha === '090825') {
+                const numero = prompt("Digite o número a aprovar ou reprovar:");
+                const acao = prompt("Digite 'aprovar' ou 'reprovar':").toLowerCase();
+                if (numerosReservados[numero]) {
+                    if (acao === 'aprovar') {
+                        numerosReservados[numero].status = 'pago';
+                    } else if (acao === 'reprovar') {
+                        numerosReservados[numero].status = 'reservado';
+                    }
+                    atualizarBancoDeDados();
+                    atualizarListaReservas();
+                } else {
+                    alert("Número não encontrado.");
+                }
+            } else {
+                alert("Senha incorreta.");
+            }
+        }
+
+        function exportarReservas() {
+            const blob = new Blob([JSON.stringify(numerosReservados, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'reservas.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importarReservas() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt';
+            input.onchange = (event) => {
+                const file = event.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = JSON.parse(e.target.result);
+                    Object.assign(numerosReservados, data);
+                    atualizarBancoDeDados();
+                    atualizarListaReservas();
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function reiniciarTabela() {
+            const senha = prompt("Digite a senha:");
+            if (senha === '090825') {
+                Object.keys(numerosReservados).forEach(key => delete numerosReservados[key]);
+                atualizarBancoDeDados();
+                atualizarListaReservas();
+            } else {
+                alert("Senha incorreta.");
+            }
+        }
+
+        // Carregar reservas ao iniciar a página
+        database.ref('reservas').on('value', (snapshot) => {
+            Object.assign(numerosReservados, snapshot.val() || {});
+            atualizarGrid();
+            atualizarListaReservas();
+        });
+
+        criarNumeros();
+    </script>
+</body>
+</html>
